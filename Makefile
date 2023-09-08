@@ -1,4 +1,3 @@
-
 .SUFFIXES:
 
 ################################################
@@ -30,6 +29,7 @@ RGBDS   :=
 RGBASM  := $(RGBDS)rgbasm
 RGBLINK := $(RGBDS)rgblink
 RGBFIX  := $(RGBDS)rgbfix
+RGBGFX  := $(RGBDS)rgbgfx
 
 ROM = $(BINDIR)/$(ROMNAME).$(ROMEXT)
 
@@ -114,6 +114,14 @@ VPATH := src
 res/%.pb16: src/tools/pb16.py res/%
 	@$(MKDIR_P) $(@D)
 	$^ $@
+
+res/%.1bpp: res/%.png
+	@mkdir -p $(@D)
+	$(RGBGFX) -d 1 -o $@ $<
+
+res/%.2bpp: res/%.png
+	@mkdir -p $(@D)
+	$(RGBGFX) -d 2 -o $@ $<
 
 # Catch non-existent files
 # KEEP THIS LAST!!
