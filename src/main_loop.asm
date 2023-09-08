@@ -45,7 +45,7 @@ MainLoop::
 	jr nz, :+
 	ld a, 1
 	ld [wParticlesInitialised], a
-	ld a, [rDIV]
+	ldh a, [rDIV]
 	ld [RandState], a
 	ld [RandState + 1], a
 	ld [RandState + 2], a
