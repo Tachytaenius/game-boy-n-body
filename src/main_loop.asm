@@ -60,13 +60,11 @@ MainLoop::
 	and a
 	jp nz, .finishMainLoop
 
-	; Check for no bodies
-	ld a, [wNumParticles]
-	and a
-	jr z, .noBodies
-
 	; Accelerate bodies
 	ld a, [wNumParticles]
+	inc a
+	dec a
+	jr z, .doneAcceleratingBodies
 	ld b, a
 	ld hl, wParticles + Particle_VelY
 .accelerateBodies
@@ -97,9 +95,13 @@ MainLoop::
 :
 	dec b
 	jr nz, .accelerateBodies
+.doneAcceleratingBodies
 
 	; Move bodies by velocity
 	ld a, [wNumParticles]
+	inc a
+	dec a
+	jr z, .doneMovingBodies
 	ld b, a
 	ld hl, wParticles
 .moveBodies
@@ -124,8 +126,7 @@ ENDR
 	assert Particle_PosX + 2 + 1 == sizeof_Particle ; is an inc hl sufficient?
 	dec b
 	jr nz, .moveBodies
-
-.noBodies
+.doneMovingBodies
 
 	; Clear bodies in Shadow OAM
 	ld hl, wShadowOAM + OAMA_TILEID
