@@ -42,10 +42,11 @@ MainLoop::
 	ld a, [wPaused]
 	xor a, 1
 	ld [wPaused], a
+:
 	; Initialise particles?
 	ld a, [wParticlesInitialised]
 	and a
-	call z InitialiseParticles
+	call z, InitialiseParticles
 
 	ld a, [wPaused]
 	and a
