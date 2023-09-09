@@ -45,25 +45,26 @@ MainLoop::
 	; Initialise particles?
 	ld a, [wParticlesInitialised]
 	and a
-	jr nz, :+
-	ld a, 1
-	ld [wParticlesInitialised], a
-	ldh a, [rDIV]
-	ld [RandState], a
-	ld [RandState + 1], a
-	ld [RandState + 2], a
-	ld [RandState + 3], a
-	call InitialiseParticles
-:
+	call z InitialiseParticles
 
 	ld a, [wPaused]
 	and a
-	jp nz, .finishMainLoop
+	jp nz, MainLoop
 
+	; Step simulation!
+	call AccelerateBodies
+	call MoveBodiesByVelocity
+
+	; "Draw"
+	call UpdateSprites
+
+	jp MainLoop
+
+AccelerateBodies:
 	; Accelerate bodies
 	ld a, [wNumParticles]
 	cp 2
-	jr c, .doneAcceleratingBodies ; Not enough bodies (need at least 2)
+	ret c ; Not enough bodies (need at least 2)
 	; For b backwards from len - 1 inclusive to 1 inclusive
 	ld b, a
 	dec b
@@ -82,16 +83,17 @@ MainLoop::
 	; Has b finished counting down?
 	dec b
 	jr nz, .outerLoop
-.doneAcceleratingBodies
+	ret
 
+MoveBodiesByVelocity:
 	; Move bodies by velocity
 	ld a, [wNumParticles]
 	inc a
 	dec a
-	jr z, .doneMovingBodies
+	ret z
 	ld b, a
 	ld hl, wParticles
-.moveBodies
+.loop
 	; assume hl is beginning of struct
 	assert Particle_VelY == 0 ; hl is particle VelY
 REPT 2
@@ -112,9 +114,10 @@ ENDR
 	inc hl
 	assert Particle_PosX + 2 + 1 == sizeof_Particle ; is an inc hl sufficient?
 	dec b
-	jr nz, .moveBodies
-.doneMovingBodies
+	jr nz, .loop
+	ret
 
+UpdateSprites:
 	; Clear bodies in Shadow OAM
 	ld hl, wShadowOAM + OAMA_TILEID
 	ld b, OAM_COUNT
@@ -139,7 +142,7 @@ ENDR
 	ld b, a
 	inc b
 	dec b
-	jr z, .skipUpdatingBodySprites ; Skip if there are no particles
+	ret z ; Return if there are no particles
 .updatingBodySpritesLoop
 	; Set sprite Y
 	ld a, [de]
@@ -168,7 +171,4 @@ ENDR
 :
 	dec b
 	jr nz, .updatingBodySpritesLoop
-.skipUpdatingBodySprites
-
-.finishMainLoop
-	jp MainLoop
+	ret

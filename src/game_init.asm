@@ -34,6 +34,12 @@ GameInit::
 
 ; This is delayed
 InitialiseParticles::
+	ldh a, [rDIV]
+	ld [RandState], a
+	ld [RandState + 1], a
+	ld [RandState + 2], a
+	ld [RandState + 3], a
+
 	ld a, STARTING_BODIES
 	ld [wNumParticles], a
 	ldh [hLoopCounter], a
@@ -99,4 +105,7 @@ InitialiseParticles::
 	dec a
 	ldh [hLoopCounter], a
 	jr nz, .generateParticle
+
+	ld a, 1
+	ld [wParticlesInitialised], a
 	ret
