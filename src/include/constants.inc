@@ -1,5 +1,7 @@
 INCLUDE "include/hardware.inc"
 
+DEF ONE EQU 256 ; Fixed point
+
 DEF FALSE EQU 0
 DEF TRUE  EQU 1
 

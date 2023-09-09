@@ -4,6 +4,9 @@ INCLUDE "include/constants.inc"
 
 DEF MAX_PARTICLES EQU 10
 
+DEF GRAVITY_Y = 32
+DEF GRAVITY_X = 0
+
 SECTION "Main Loop Variables", WRAM0
 
 wPaused::
@@ -55,7 +58,7 @@ MainLoop::
 
 	ld a, [wPaused]
 	and a
-	jr nz, .finishMainLoop
+	jp nz, .finishMainLoop
 
 	; Check for no bodies
 	ld a, [wNumParticles]
@@ -63,7 +66,37 @@ MainLoop::
 	jr z, .noBodies
 
 	; Accelerate bodies
-	; TODO
+	ld a, [wNumParticles]
+	ld b, a
+	ld hl, wParticles + Particle_VelY
+.accelerateBodies
+	; Add GRAVITY_Y to PosY
+	ld a, [hl]
+	add a, LOW(GRAVITY_Y)
+	ld [hl+], a
+	ld a, [hl]
+	adc a, HIGH(GRAVITY_Y)
+	ld [hl+], a
+	; Move to PosX
+	assert Particle_VelY + 4 == Particle_VelX
+	inc hl
+	inc hl
+	; Add GRAVITY_X to PosX
+	ld a, [hl]
+	add a, LOW(GRAVITY_X)
+	ld [hl+], a
+	ld a, [hl]
+	adc a, HIGH(GRAVITY_X)
+	ld [hl+], a
+	; Move to next particle by adding to hl
+	ld a, (sizeof_Particle + Particle_PosY) - (Particle_PosX + 2)
+	add a, l
+	ld l, a
+	jr nc, :+
+	inc h
+:
+	dec b
+	jr nz, .accelerateBodies
 
 	; Move bodies by velocity
 	ld a, [wNumParticles]
