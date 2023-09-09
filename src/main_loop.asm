@@ -62,39 +62,26 @@ MainLoop::
 
 	; Accelerate bodies
 	ld a, [wNumParticles]
-	inc a
-	dec a
-	jr z, .doneAcceleratingBodies
+	cp 2
+	jr c, .doneAcceleratingBodies ; Not enough bodies (need at least 2)
+	; For b backwards from len - 1 inclusive to 1 inclusive
 	ld b, a
-	ld hl, wParticles + Particle_VelY
-.accelerateBodies
-	; Add GRAVITY_Y to PosY
-	ld a, [hl]
-	add a, LOW(GRAVITY_Y)
-	ld [hl+], a
-	ld a, [hl]
-	adc a, HIGH(GRAVITY_Y)
-	ld [hl+], a
-	; Move to PosX
-	assert Particle_VelY + 4 == Particle_VelX
-	inc hl
-	inc hl
-	; Add GRAVITY_X to PosX
-	ld a, [hl]
-	add a, LOW(GRAVITY_X)
-	ld [hl+], a
-	ld a, [hl]
-	adc a, HIGH(GRAVITY_X)
-	ld [hl+], a
-	; Move to next particle by adding to hl
-	ld a, (sizeof_Particle + Particle_PosY) - (Particle_PosX + 2)
-	add a, l
-	ld l, a
-	jr nc, :+
-	inc h
-:
 	dec b
-	jr nz, .accelerateBodies
+.outerLoop
+	; For c backwards from i - 1 inclusive to 0 inclusive
+	ld c, b
+	dec c
+.innerLoop
+	; b: first particle's index, c: second particle's index
+	; Do stuff here
+	; Has c finished counting down?
+	dec c
+	ld a, c
+	cp -1 ; Check for underflow
+	jr nz, .innerLoop
+	; Has b finished counting down?
+	dec b
+	jr nz, .outerLoop
 .doneAcceleratingBodies
 
 	; Move bodies by velocity
