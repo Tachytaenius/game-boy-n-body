@@ -43,14 +43,15 @@ MainLoop::
 	xor a, 1
 	ld [wPaused], a
 :
-	; Initialise particles?
-	ld a, [wParticlesInitialised]
-	and a
-	call z, InitialiseParticles
 
 	ld a, [wPaused]
 	and a
 	jp nz, MainLoop
+
+	; Initialise particles?
+	ld a, [wParticlesInitialised]
+	and a
+	call z, InitialiseParticles
 
 	; Step simulation!
 	call AccelerateBodies
