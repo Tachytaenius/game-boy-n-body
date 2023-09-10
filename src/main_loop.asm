@@ -22,6 +22,11 @@ wNumParticles::
 wParticles::
 	dstructs MAX_PARTICLES, Particle, wParticle
 
+wParticleAAddress:
+	ds 2
+wParticleBAddress:
+	ds 2
+
 SECTION "Main Loop", ROM0
 
 MainLoop::
@@ -75,8 +80,28 @@ AccelerateBodies:
 	ld c, b
 	dec c
 .innerLoop
-	; b: first particle's index, c: second particle's index
-	; Do stuff here
+	; b: particle A's index, c: particle B's index
+	push bc
+
+	; Get and apply forces
+	
+	ld a, b ; b (particle A) has to go first as it gets destroyed
+	call GetParticleAInHl
+	ld a, l
+	ld [wParticleAAddress], a
+	ld a, h
+	ld [wParticleAAddress + 1], a
+
+	ld a, c
+	call GetParticleAInHl
+	ld a, l
+	ld [wParticleBAddress], a
+	ld a, h
+	ld [wParticleBAddress + 1], a
+
+	; TODO
+
+	pop bc
 	; Has c finished counting down?
 	dec c
 	ld a, c
@@ -87,34 +112,95 @@ AccelerateBodies:
 	jr nz, .outerLoop
 	ret
 
+; Destroys af b
+GetParticleAInHl:
+	ld hl, wParticles
+	and a
+	ret z ; Return if index 0
+	ld b, a
+.loop
+	ld a, sizeof_Particle
+	add a, l
+	ld l, a
+	jr nc, :+
+	inc h
+:
+	dec b
+	jr nz, .loop
+	ret
+
 MoveBodiesByVelocity:
 	; Move bodies by velocity
 	ld a, [wNumParticles]
-	inc a
-	dec a
+	and a
 	ret z
 	ld b, a
 	ld hl, wParticles
 .loop
 	; assume hl is beginning of struct
 	assert Particle_VelY == 0 ; hl is particle VelY
-REPT 2
-	ld a, [hl+]
-	ld e, a
-	ld a, [hl+]
-	ld d, a
-	assert Particle_VelY + 2 == Particle_PosY
-	assert Particle_VelX + 2 == Particle_PosX
-	ld a, [hl]
-	add a, e
+	assert Particle_VelY + 4 == Particle_PosY ; Are positions right after velocities?
+	assert Particle_VelX + 4 == Particle_PosX
+	assert Particle_PosY + 4 == Particle_VelX ; Is X after Y?
+	ld e, l
+	ld d, h
+	; Move hl ahead of de
+	ld a, Particle_PosY - Particle_VelY
+	add a, l
+	ld l, a
+	jr nc, :+
+	inc h
+:
+	; hl: PosY, de: VelY
+	; PosY += VelY
+	; First byte
+	ld a, [de]
+	add a, [hl]
 	ld [hl+], a
-	ld a, [hl]
-	adc a, d
+	inc de
+	; Next 3 bytes consider carry
+REPT 3
+	ld a, [de]
+	adc a, [hl]
 	ld [hl+], a
-	assert Particle_PosY + 2 == Particle_VelX
+	inc de
 ENDR
+
+	; Move hl and de ahead to next struct fields
+	ld a, Particle_VelX - Particle_PosY
+	add a, e
+	ld e, a
+	jr nc, :+
+	inc d
+:
+	ld a, Particle_PosX - Particle_VelX
+	add a, l
+	ld l, a
+	jr nc, :+
+	inc h
+:
+
+	; hl: PosY, de: VelY
+	; PosX += VelX
+	; First byte
+	ld a, [de]
+	add a, [hl]
+	ld [hl+], a
+	inc de
+	; Next 3 bytes consider carry
+REPT 2
+	ld a, [de]
+	adc a, [hl]
+	ld [hl+], a
+	inc de
+ENDR
+	ld a, [de]
+	adc a, [hl]
+	ld [hl+], a
+	; no inc de
+
 	inc hl
-	assert Particle_PosX + 2 + 1 == sizeof_Particle ; is an inc hl sufficient?
+	assert Particle_PosX + 4 + 1 == sizeof_Particle ; is an inc hl sufficient?
 	dec b
 	jr nz, .loop
 	ret

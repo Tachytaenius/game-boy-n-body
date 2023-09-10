@@ -55,22 +55,28 @@ InitialiseParticles::
 	pop hl
 	ld a, d
 	ld [hl+], a
+	; Use e as a roll to determine whether to fill the rest of the bytes with 0 or -1
 	ld a, e
 	cp a, 128
-	ld a, 0
+	ld a, 0 ; no xor a, need to preserve carry
 	jr c, :+
 	ld a, -1
 :
 	ld [hl+], a
+	ld [hl+], a
+	ld [hl+], a
 
 	; PosY
 	xor a
-	ld [hl+],a 
+	ld [hl+], a
 	push hl
 	ld h, START_POS_PADDING
 	ld l, SCRN_Y - START_POS_PADDING * 2
 	call RandRange
 	pop hl
+	ld [hl+], a
+	xor a
+	ld [hl+], a
 	ld [hl+], a
 
 	; VelX
@@ -79,15 +85,18 @@ InitialiseParticles::
 	pop hl
 	ld a, d
 	ld [hl+], a
+	; Use e as a roll to determine whether to fill the rest of the bytes with 0 or -1
 	ld a, e
 	cp a, 128
-	ld a, 0
+	ld a, 0 ; no xor a, need to preserve carry
 	jr c, :+
 	ld a, -1
 :
 	ld [hl+], a
+	ld [hl+], a
+	ld [hl+], a
 
-	; Posx
+	; PosX
 	xor a
 	ld [hl+], a
 	push hl
@@ -95,6 +104,9 @@ InitialiseParticles::
 	ld l, SCRN_X - START_POS_PADDING * 2
 	call RandRange
 	pop hl
+	ld [hl+], a
+	xor a
+	ld [hl+], a
 	ld [hl+], a
 
 	; Mass
