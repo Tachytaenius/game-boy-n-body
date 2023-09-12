@@ -32,6 +32,7 @@ SECTION "Main Loop", ROM0
 MainLoop::
 	; Wait for VBlank
 	halt
+	nop
 	ldh a, [hVBlankFlag]
 	and a
 	jr z, MainLoop
