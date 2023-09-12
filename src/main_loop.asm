@@ -207,57 +207,174 @@ ENDR
 	ret
 
 UpdateSprites:
-	; Clear bodies in Shadow OAM
-	ld hl, wShadowOAM + OAMA_TILEID
+	; TODO: Flicker when there are more bodies than drawable sprites
+
+	; Clear bodies in Shadow OAM by moving them all to the y 0
+	ld hl, wShadowOAM + OAMA_Y
 	ld b, OAM_COUNT
 .clearBodiesLoop
 	xor a
-	ld [hl], a
-	; Add sizeof_OAM_ATTRS to hl
+	ld [hl+], a ; Set y to zero
+	inc hl
+	ld [hl+], a ; Set tile to zero as well
+	inc hl
+	dec b
+	jr nz, .clearBodiesLoop
+
+	; Update body positions in Shadow OAM
+	ld hl, wParticles + Particle_PosY + 1
+	ld de, wShadowOAM + OAMA_Y
+	ld a, [wNumParticles]
+	and a
+	ret z ; Return if there are no particles
+	ld b, a
+.updateBodySpritesLoop
+
+	; Check that PosY is within [0, SCRN_Y) and set sprite y to PosY's second-
+	; lowest byte + offset, unsetting it if the rest of PosY shows that it's out of range.
+	; We first check the range of the lowest non-fractional byte (and set sprite y to it + offset)
+	; Then we check if the higher two bytes are both zero
+
+	ld a, [hl+] ; 2nd lowest byte of PosY
+	add OAM_Y_OFS
+	ld [de], a ; We'll set this to 0 if it turns out to be out of range
+	sub OAM_Y_OFS
+	cp SCRN_Y
+	jr c, .skipSpriteDeactivationCode1 ; Jump if a >= SCRN_Y
+
+	; Deactivate sprite
+	xor a
+	ld [de], a ; Set sprite y to 0
+	; Set de to next sprite y (add sizeof_OAM_ATTRS)
 	ld a, sizeof_OAM_ATTRS
+	add a, e
+	ld e, a
+	jr nc, :+
+	inc d
+:
+	; Set hl to next Particle_PosY + 1
+	ld a, sizeof_Particle - 1 ; A whole sizeof_Partilce minus amount traversed
 	add a, l
 	ld l, a
 	jr nc, :+
 	inc h
 :
-	dec b
-	jr nz, .clearBodiesLoop
+	jr .loopCheck
+.skipSpriteDeactivationCode1
 
-	; Update body positions in Shadow OAM
-	; TODO: Flicker when there are more bodies than drawable sprites
-	ld hl, wShadowOAM + OAMA_Y
-	ld de, wParticles + Particle_PosY + 1
-	ld a, [wNumParticles]
-	ld b, a
-	inc b
-	dec b
-	ret z ; Return if there are no particles
-.updatingBodySpritesLoop
-	; Set sprite Y
-	ld a, [de]
-	add a, OAM_Y_OFS
-	ld [hl+], a
-	; Go from Y to X
-	ld a, Particle_PosX - Particle_PosY
+	; Check higher two bytes
+	ld a, [hl+] ; 2nd highest byte of PosY
+	ld c, a
+	ld a, [hl+] ; Highest byte of PosY
+	or c ; Are they both zero?
+	jr z, .skipSpriteDeactivationCode2
+
+	; Deactivate sprite
+	xor a
+	ld [de], a ; Set sprite y to 0
+	; Set de to next sprite y (add sizeof_OAM_ATTRS)
+	ld a, sizeof_OAM_ATTRS
 	add a, e
 	ld e, a
 	jr nc, :+
 	inc d
 :
-	; Set sprite X
-	ld a, [de]
-	add a, OAM_X_OFS
-	ld [hl+], a
+	; Set hl to next Particle_PosY + 1
+	ld a, sizeof_Particle - 3 ; A whole sizeof_Partilce minus amount traversed
+	add a, l
+	ld l, a
+	jr nc, :+
+	inc h
+:
+	jr .loopCheck
+.skipSpriteDeactivationCode2
+
+	; We're done with PosY
+
+	; Check that PosX is within [0, SCRN_X) and set sprite x to PosX's second-lowest byte
+	; + offset, setting sprite y to 0 if the rest of PosX shows that it's out of range.
+	; We first check the range of the lowest non-fractional byte (and set sprite x to it + offset)
+	; Then we check if the higher two bytes are both zero
+
+	; We were on VelY + 0, so add 5
+	ld a, 5
+	add a, l
+	ld l, a
+	jr nc, :+
+	inc h
+:
+	ld a, [hl+] ; Second lowest byte of PosX
+	add OAM_X_OFS
+	inc de ; To sprite x
+	ld [de], a
+	sub OAM_X_OFS
+	cp SCRN_X
+	jr c, .skipSpriteDeactivationCode3
+
+	; Deactivate sprite
+	xor a
+	dec de ; Back to sprite y
+	ld [de], a
+	; Set de to next sprite y
+	ld a, sizeof_OAM_ATTRS
+	add a, e
+	ld e, a
+	jr nc, :+
+	inc d
+:
+	; Set hl to next Particle_PosY + 1
+	ld a, sizeof_Particle - 9 ; A whole sizeof_Partilce minus amount traversed
+	add a, l
+	ld l, a
+	jr nc, :+
+	inc h
+:
+	jr .loopCheck
+.skipSpriteDeactivationCode3
+
+	; Check higher two bytes
+	ld a, [hl+] ; 2nd highest byte of PosX
+	ld c, a
+	ld a, [hl+] ; Highest byte of PosX
+	or c ; Are they both zero?
+	jr z, .skipSpriteDeactivationCode4
+
+	; Deactivate sprite
+	xor a
+	dec de ; Back to sprite y
+	ld [de], a
+	; Set de to next sprite y
+	ld a, sizeof_OAM_ATTRS
+	add a, e
+	ld e, a
+	jr nc, :+
+	inc d
+:
+	; Set hl to next Particle_PosY + 1
+	ld a, sizeof_Particle - 11 ; A whole sizeof_Partilce minus amount traversed
+	add a, l
+	ld l, a
+	jr nc, :+
+	inc h
+:
+	jr .loopCheck
+.skipSpriteDeactivationCode4
+
+	; Set tile to visible
 	ld a, TILE_PARTICLE
-	ld [hl+], a
-	; Prepare for next particle/sprite
-	inc hl
-	ld a, (sizeof_Particle + Particle_PosY + 1) - (Particle_PosX + 1)
-	add a, e
-	ld e, a
+	inc de
+	ld [de], a
+	inc de
+	inc de ; To next sprite y
+	; Set hl to next Particle_PosY + 1
+	ld a, sizeof_Particle - 11 ; A whole sizeof_Partilce minus amount traversed
+	add a, l
+	ld l, a
 	jr nc, :+
-	inc d
+	inc h
 :
+
+.loopCheck
 	dec b
-	jr nz, .updatingBodySpritesLoop
+	jp nz, .updateBodySpritesLoop
 	ret
