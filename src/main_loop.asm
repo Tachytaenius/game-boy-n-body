@@ -77,7 +77,7 @@ AccelerateBodies:
 	ld b, a
 	dec b
 .outerLoop
-	; For c backwards from i - 1 inclusive to 0 inclusive
+	; For c backwards from b - 1 inclusive to 0 inclusive
 	ld c, b
 	dec c
 .innerLoop
