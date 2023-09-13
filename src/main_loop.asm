@@ -207,6 +207,13 @@ ENDR
 	ret
 
 UpdateSprites:
+	assert Particle_VelY == 0
+	assert Particle_VelY + 4 == Particle_PosY
+	assert Particle_PosY + 4 == Particle_VelX
+	assert Particle_VelX + 4 == Particle_PosX
+	assert Particle_PosX + 4 == Particle_Mass
+	assert Particle_Mass + 1 == sizeof_Particle
+
 	; TODO: Flicker when there are more bodies than drawable sprites
 
 	; Clear bodies in Shadow OAM by moving them all to the y 0
