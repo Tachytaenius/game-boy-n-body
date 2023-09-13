@@ -236,6 +236,8 @@ UpdateSprites:
 	ret z ; Return if there are no particles
 	ld b, a
 .updateBodySpritesLoop
+	; The 4 deactivate sprite blocks could be factored out into two, where the amount added to hl is
+	; in a when jumped to, but avoiding jumps is faster, and we need to optimise for speed.
 
 	; Check that PosY is within [0, SCRN_Y) and set sprite y to PosY's second-
 	; lowest byte + offset, unsetting it if the rest of PosY shows that it's out of range.
